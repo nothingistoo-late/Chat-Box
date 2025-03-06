@@ -30,7 +30,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 🔥 **Kích hoạt CORS (bạn đã quên bước này)**
 app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
