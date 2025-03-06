@@ -25,8 +25,8 @@ public class GeminiService
         {
             contents = new[]
             {
-                new { parts = new[] { new { text = message } } }
-            }
+            new { parts = new[] { new { text = message } } }
+        }
         };
 
         var json = JsonSerializer.Serialize(requestBody);
@@ -35,11 +35,28 @@ public class GeminiService
         var response = await _httpClient.PostAsync(apiUrl, content);
         var responseString = await response.Content.ReadAsStringAsync();
 
+        // In phản hồi từ API để kiểm tra
+        Console.WriteLine("Response từ API Gemini: " + responseString);
+
+        // Kiểm tra nếu API trả về lỗi HTTP
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException($"Lỗi API Gemini: {response.StatusCode}, Nội dung: {responseString}");
+        }
+
+        // Phân tích JSON trả về
         using JsonDocument doc = JsonDocument.Parse(responseString);
-        return doc.RootElement.GetProperty("candidates")[0]
-                              .GetProperty("content")
-                              .GetProperty("parts")[0]
-                              .GetProperty("text")
-                              .GetString();
+        if (!doc.RootElement.TryGetProperty("candidates", out JsonElement candidates) ||
+            candidates.GetArrayLength() == 0 ||
+            !candidates[0].TryGetProperty("content", out JsonElement contentElement) ||
+            !contentElement.TryGetProperty("parts", out JsonElement parts) ||
+            parts.GetArrayLength() == 0 ||
+            !parts[0].TryGetProperty("text", out JsonElement textElement))
+        {
+            throw new KeyNotFoundException("Phản hồi API không có dữ liệu hợp lệ!");
+        }
+
+        return textElement.GetString();
     }
+
 }
