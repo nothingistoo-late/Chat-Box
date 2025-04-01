@@ -1,8 +1,12 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DotNetEnv;
 using Microsoft.Extensions.Configuration;
+
+//Env.Load(); // Load biến môi trường
 
 public class GeminiService
 {
@@ -10,11 +14,19 @@ public class GeminiService
     private readonly string _apiKey;
     private readonly string _model;
 
-    public GeminiService(HttpClient httpClient, IConfiguration configuration)
+    public GeminiService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _apiKey = configuration["GoogleGemini:ApiKey"];
-        _model = configuration["GoogleGemini:Model"];
+
+        // Lấy API key từ biến môi trường (file .env)
+        _apiKey = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_API_KEY");
+        _model = Environment.GetEnvironmentVariable("GOOGLE_GEMINI_MODEL");
+
+        if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_model))
+        {
+            throw new InvalidOperationException("API Key hoặc Model không được tìm thấy trong biến môi trường!");
+        }
+
     }
 
     public async Task<string> SendMessageAsync(string message)
@@ -25,8 +37,8 @@ public class GeminiService
         {
             contents = new[]
             {
-            new { parts = new[] { new { text = message } } }
-        }
+                new { parts = new[] { new { text = message } } }
+            }
         };
 
         var json = JsonSerializer.Serialize(requestBody);
@@ -35,16 +47,13 @@ public class GeminiService
         var response = await _httpClient.PostAsync(apiUrl, content);
         var responseString = await response.Content.ReadAsStringAsync();
 
-        // In phản hồi từ API để kiểm tra
         Console.WriteLine("Response từ API Gemini: " + responseString);
 
-        // Kiểm tra nếu API trả về lỗi HTTP
         if (!response.IsSuccessStatusCode)
         {
             throw new HttpRequestException($"Lỗi API Gemini: {response.StatusCode}, Nội dung: {responseString}");
         }
 
-        // Phân tích JSON trả về
         using JsonDocument doc = JsonDocument.Parse(responseString);
         if (!doc.RootElement.TryGetProperty("candidates", out JsonElement candidates) ||
             candidates.GetArrayLength() == 0 ||
@@ -58,5 +67,4 @@ public class GeminiService
 
         return textElement.GetString();
     }
-
 }

@@ -1,14 +1,19 @@
-﻿var builder = WebApplication.CreateBuilder(args);
+﻿using DotNetEnv;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Load biến môi trường từ file .env
+Env.Load();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://127.0.0.1:5500") // Chỉ cho phép frontend này
-                  .AllowAnyMethod()  // Cho phép mọi phương thức (GET, POST, PUT, DELETE, ...)
-                  .AllowAnyHeader()  // Cho phép mọi header
-                  .AllowCredentials(); // Cho phép gửi cookies, auth headers
+            policy.WithOrigins("http://127.0.0.1:5500")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
         });
 });
 
@@ -29,9 +34,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowFrontend");
-
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
